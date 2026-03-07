@@ -35,7 +35,7 @@ public class SRController {
             @PathVariable String modelName,
             @PathVariable Integer scale
     ) throws IOException {
-        srService.submit(uploadFile, modelName, scale);
-        return ResponseEntity.ok(ResponseResult.ok());
+        String taskId = srService.submit(uploadFile, modelName, scale);
+        return ResponseEntity.ok(ResponseResult.ok(taskId));
     }
 }

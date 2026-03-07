@@ -1,5 +1,13 @@
 name: "sr-docker"
 services:
+  sr-redis:
+    image: redis
+    container_name: sr-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - sr-redis-data:/data
+
   sr-nacos:
     image: nacos/nacos-server:v3.1.0
     container_name: sr-nacos
@@ -67,5 +75,6 @@ networks:
     driver: bridge
 
 volumes:
+  sr-redis-data:
   sr-nacos-data:
   sr-rocketmq-data:

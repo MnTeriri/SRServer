@@ -8,8 +8,9 @@ import com.example.srcontroller.service.ISRService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -24,12 +25,15 @@ public class SRServiceImpl implements ISRService {
 
     private final ISRTaskDao srTaskDao;
 
+    private final RedisTemplate<String, Object> redisTemplate;
+
     private final SRProperties srProperties;
 
     private final RocketMQTemplate rocketMQTemplate;
 
     @Override
-    public void submit(MultipartFile uploadFile, String modelName, Integer scale) throws IOException {
+    @Transactional(rollbackFor = Exception.class)
+    public String submit(MultipartFile uploadFile, String modelName, Integer scale) throws IOException {
         //1.判定模型是否正确
 
         //2.判定图片大小是否超出要求（以后加上照片是否已经传过的判定）
@@ -53,7 +57,12 @@ public class SRServiceImpl implements ISRService {
 
         //任务添加到数据库
         srTaskDao.insert(task);
+        //放入Redis
+//        redisTemplate.opsForValue().set(task.getTaskId(), task);
+        redisTemplate.convertAndSend("sr-task-channel", task);
         //放入消息队列
         rocketMQTemplate.convertAndSend("sr-task-topic", task);
+
+        return taskId;
     }
 }
