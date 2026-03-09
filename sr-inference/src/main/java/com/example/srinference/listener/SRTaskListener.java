@@ -1,4 +1,4 @@
-package com.example.srinference.service.impl;
+package com.example.srinference.listener;
 
 import com.example.srcommon.model.SRTask;
 import com.example.srinference.dao.ISRTaskDao;
@@ -6,10 +6,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Slf4j
@@ -35,7 +35,8 @@ public class SRTaskListener implements RocketMQListener<SRTask> {
         task.setState(SRTask.SRTaskState.RUNNING);
         //保存到数据库
         srTaskDao.updateById(task);
-//        redisTemplate.opsForValue().set(task.getTaskId(), task);
+        //放入Redis并发送消息，缓存5分钟过期
+        redisTemplate.opsForValue().set(task.getTaskId(), task, Duration.ofMinutes(5));
         redisTemplate.convertAndSend("sr-task-channel", task);
 
         //2.执行超分任务（超时或者报错直接变成失败任务）
@@ -51,7 +52,8 @@ public class SRTaskListener implements RocketMQListener<SRTask> {
         task.setState(SRTask.SRTaskState.FINISH).setFinishTime(LocalDateTime.now());
         //保存到数据库
         srTaskDao.updateById(task);
-//        redisTemplate.opsForValue().set(task.getTaskId(), task);
+        //放入Redis并发送消息，缓存5分钟过期
+        redisTemplate.opsForValue().set(task.getTaskId(), task, Duration.ofMinutes(5));
         redisTemplate.convertAndSend("sr-task-channel", task);
 
         log.debug("任务结束：{}", task);

@@ -1,10 +1,13 @@
 package com.example.srcontroller.service.impl;
 
 import cn.hutool.core.util.RandomUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.srcommon.config.SRProperties;
+import com.example.srcommon.exception.SystemException;
 import com.example.srcommon.model.SRTask;
+import com.example.srcommon.response.ResponseCode;
 import com.example.srcontroller.dao.ISRTaskDao;
-import com.example.srcontroller.service.ISRService;
+import com.example.srcontroller.service.ISRTaskService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
@@ -15,13 +18,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SRServiceImpl implements ISRService {
+public class SRTaskServiceImpl implements ISRTaskService {
 
     private final ISRTaskDao srTaskDao;
 
@@ -57,12 +61,30 @@ public class SRServiceImpl implements ISRService {
 
         //任务添加到数据库
         srTaskDao.insert(task);
-        //放入Redis
-//        redisTemplate.opsForValue().set(task.getTaskId(), task);
+        //放入Redis并发送消息，缓存5分钟过期
+        redisTemplate.opsForValue().set(task.getTaskId(), task, Duration.ofMinutes(5));
         redisTemplate.convertAndSend("sr-task-channel", task);
         //放入消息队列
         rocketMQTemplate.convertAndSend("sr-task-topic", task);
 
         return taskId;
+    }
+
+    @Override
+//    @Cacheable(cacheNames = "sr-task", key = "#taskId")//懒得改cache key了
+    public SRTask searchSRTaskByTaskId(String taskId) {
+        //先找缓存
+        SRTask task = (SRTask) redisTemplate.opsForValue().get(taskId);
+        if (task != null) {
+            return task;
+        }
+        //缓存没有查数据库
+        task = srTaskDao.selectOne(new QueryWrapper<SRTask>().eq("task_id", taskId));
+        if (task == null) {
+            throw new SystemException(ResponseCode.NO_TASK_ERROR);
+        }
+        //更新缓存
+        redisTemplate.opsForValue().set(task.getTaskId(), task, Duration.ofMinutes(5));
+        return task;
     }
 }

@@ -1,7 +1,7 @@
 package com.example.srcontroller.controller;
 
 import com.example.srcommon.response.ResponseResult;
-import com.example.srcontroller.service.ISRService;
+import com.example.srcontroller.service.ISRTaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -18,11 +18,11 @@ import java.io.IOException;
 @Slf4j
 @RestController
 @RequestMapping("/sr")
-@Tag(name = "SR接口")
 @RequiredArgsConstructor
-public class SRController {
+@Tag(name = "SR接口")
+public class SRTaskController {
 
-    private final ISRService srService;
+    private final ISRTaskService srTaskService;
 
     @Operation(summary = "超分任务提交接口")
     @Parameters({
@@ -35,7 +35,7 @@ public class SRController {
             @PathVariable String modelName,
             @PathVariable Integer scale
     ) throws IOException {
-        String taskId = srService.submit(uploadFile, modelName, scale);
+        String taskId = srTaskService.submit(uploadFile, modelName, scale);
         return ResponseEntity.ok(ResponseResult.ok(taskId));
     }
 }

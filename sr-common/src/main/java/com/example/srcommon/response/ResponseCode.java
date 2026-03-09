@@ -8,6 +8,7 @@ import lombok.ToString;
 public enum ResponseCode {
     OK(200, "操作成功"),
     ERROR(100000, "操作失败"),
+    NO_TASK_ERROR(100001, "没有该任务"),
     AUTHORIZED_ERROR(401, "没有权限，需要登录"),
     FORBIDDEN_ERROR(403, "权限不够，被拒绝"),
     INTERNAL_SERVER_ERROR(500, "服务器内部错误");
