@@ -35,7 +35,8 @@ public class SRTask {
     public enum SRTaskState {
         CREATE(0, "已创建"),
         RUNNING(1, "正在执行"),
-        FINISH(2, "完成");
+        FINISH(2, "完成"),
+        FAIL(3, "失败");
 
         @JsonValue
         @EnumValue

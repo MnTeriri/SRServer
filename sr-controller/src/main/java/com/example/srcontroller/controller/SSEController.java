@@ -36,7 +36,8 @@ public class SSEController {
     @GetMapping("/task/{taskId}")
     public SseEmitter stream(@PathVariable String taskId) throws IOException {
         SRTask task = srTaskService.searchSRTaskByTaskId(taskId);
-        if (task.getState() == SRTask.SRTaskState.FINISH) {
+        if (task.getState() == SRTask.SRTaskState.FINISH
+                || task.getState() == SRTask.SRTaskState.FAIL) {
             //状态为完成时没必要再监听，直接结束
             SseEmitter emitter = new SseEmitter(0L);
             emitter.send(SseEmitter.event()

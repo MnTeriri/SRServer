@@ -21,6 +21,9 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 @Slf4j
 @Service
@@ -31,7 +34,7 @@ public class SRTaskServiceImpl implements ISRTaskService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    private final SRProperties srProperties;
+    private final SRProperties properties;
 
     private final RocketMQTemplate rocketMQTemplate;
 
@@ -39,7 +42,11 @@ public class SRTaskServiceImpl implements ISRTaskService {
     @Transactional(rollbackFor = Exception.class)
     public String submit(MultipartFile uploadFile, String modelName, Integer scale) throws IOException {
         //1.判定模型是否正确
-
+        List<SRProperties.ModelConfig> modelConfigs = properties.getModels().get(modelName);
+        if (modelConfigs == null ||
+                modelConfigs.stream().noneMatch(modelConfig -> Objects.equals(modelConfig.getScale(), scale))) {
+            throw new SystemException(ResponseCode.NO_SUCH_MODEL_ERROR);
+        }
         //2.判定图片大小是否超出要求（以后加上照片是否已经传过的判定）
 
         //3.进行处理
@@ -48,7 +55,7 @@ public class SRTaskServiceImpl implements ISRTaskService {
                 RandomUtil.randomNumbers(6) + oldName.substring(oldName.lastIndexOf("."));//生成新文件名
         log.debug("使用模型：{}，放大倍率：{}", modelName, scale);
         log.debug("文件原名称：{}，文件现名称：{}", oldName, fileName);
-        uploadFile.transferTo(Path.of(srProperties.getInputDir() + "/" + fileName).toFile());//保存文件
+        uploadFile.transferTo(Path.of(properties.getInputDir() + "/" + fileName).toFile());//保存文件
 
         String taskId = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + RandomUtil.randomNumbers(6);
         SRTask task = new SRTask()
@@ -71,6 +78,21 @@ public class SRTaskServiceImpl implements ISRTaskService {
     }
 
     @Override
+    public List<Map<String, Object>> getModelList() {
+        Map<String, List<SRProperties.ModelConfig>> models = properties.getModels();
+        List<Map<String, Object>> list = new ArrayList<>();
+
+        models.forEach((modelName, modelConfigs) -> {
+            Map<String, Object> map = new HashMap<>();
+            List<Integer> scales = modelConfigs.stream().map(SRProperties.ModelConfig::getScale).toList();
+            map.put("modelName", modelName);
+            map.put("scale", scales);
+            list.add(map);
+        });
+        return list;
+    }
+
+    @Override
 //    @Cacheable(cacheNames = "sr-task", key = "#taskId")//懒得改cache key了
     public SRTask searchSRTaskByTaskId(String taskId) {
         //先找缓存
@@ -81,7 +103,7 @@ public class SRTaskServiceImpl implements ISRTaskService {
         //缓存没有查数据库
         task = srTaskDao.selectOne(new QueryWrapper<SRTask>().eq("task_id", taskId));
         if (task == null) {
-            throw new SystemException(ResponseCode.NO_TASK_ERROR);
+            throw new SystemException(ResponseCode.NO_SUCH_TASK_ERROR);
         }
         //更新缓存
         redisTemplate.opsForValue().set(task.getTaskId(), task, Duration.ofMinutes(5));

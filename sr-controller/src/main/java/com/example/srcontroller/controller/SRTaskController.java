@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -37,5 +39,11 @@ public class SRTaskController {
     ) throws IOException {
         String taskId = srTaskService.submit(uploadFile, modelName, scale);
         return ResponseEntity.ok(ResponseResult.ok(taskId));
+    }
+
+    @Operation(summary = "获取可用模型")
+    @GetMapping("/models")
+    public ResponseEntity<ResponseResult<List<Map<String, Object>>>> getModelList() {
+        return ResponseEntity.ok(ResponseResult.ok(srTaskService.getModelList()));
     }
 }
