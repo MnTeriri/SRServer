@@ -22,8 +22,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 @Slf4j
 @Service
@@ -55,7 +53,7 @@ public class SRTaskServiceImpl implements ISRTaskService {
                 RandomUtil.randomNumbers(6) + oldName.substring(oldName.lastIndexOf("."));//生成新文件名
         log.debug("使用模型：{}，放大倍率：{}", modelName, scale);
         log.debug("文件原名称：{}，文件现名称：{}", oldName, fileName);
-        uploadFile.transferTo(Path.of(properties.getInputDir() + "/" + fileName).toFile());//保存文件
+        uploadFile.transferTo(Path.of(properties.getImageInputDir() + "/" + fileName).toFile());//保存文件
 
         String taskId = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + RandomUtil.randomNumbers(6);
         SRTask task = new SRTask()

@@ -12,8 +12,9 @@ import java.util.Map;
 @Component
 @ConfigurationProperties(prefix = "sr")//自动刷新
 public class SRProperties {
-    private String inputDir;//照片上传路径
-    private String outputDir;//超分照片保存路径
+    private String modelDir;//模型路径
+    private String imageInputDir;//照片上传路径
+    private String imageOutputDir;//超分照片保存路径
 
     private Map<String, List<ModelConfig>> models = new HashMap<>();
 

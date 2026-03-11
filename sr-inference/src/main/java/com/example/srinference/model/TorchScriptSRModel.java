@@ -12,13 +12,11 @@ import com.example.srinference.utils.ImageUtils;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.IOException;
+import java.nio.file.Paths;
 
 @Slf4j
 @Getter
@@ -36,17 +34,12 @@ public class TorchScriptSRModel implements SRModel {
         this.scale = scale;
         this.path = path;
 
-        try {
-            Resource resource = new ClassPathResource(path);
-            criteria = Criteria.builder()
-                    .setTypes(NDList.class, NDList.class)
-                    .optEngine("PyTorch")
-                    .optModelPath(resource.getFilePath())
-                    .optTranslator(new NoopTranslator())
-                    .build();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        criteria = Criteria.builder()
+                .setTypes(NDList.class, NDList.class)
+                .optEngine("PyTorch")
+                .optModelPath(Paths.get(path))
+                .optTranslator(new NoopTranslator())
+                .build();
 
     }
 

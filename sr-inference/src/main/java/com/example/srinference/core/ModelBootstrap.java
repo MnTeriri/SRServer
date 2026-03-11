@@ -30,11 +30,11 @@ public class ModelBootstrap {
             List<SRProperties.ModelConfig> modelConfigs = modelEntry.getValue();
             for (SRProperties.ModelConfig modelConfig : modelConfigs) {
                 Integer scale = modelConfig.getScale();
-                String path = modelConfig.getPath();
+                String modelPath = properties.getModelDir() + modelConfig.getPath();
 
-                log.info("初始化模型：模型名称：{}，放大倍率：{}，权重路径：{}", modelName, scale, path);
+                log.info("初始化模型：模型名称：{}，放大倍率：{}，权重路径：{}", modelName, scale, modelPath);
 
-                SRModel model = new TorchScriptSRModel(modelName, scale, path);
+                SRModel model = new TorchScriptSRModel(modelName, scale, modelPath);
                 modelRegistry.register(new ModelKey(modelName, scale), model);
             }
         }

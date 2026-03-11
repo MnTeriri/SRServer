@@ -1,5 +1,33 @@
 name: "sr-docker"
 services:
+  sr-controller:
+    image: sr-controller
+    build:
+      context: ./sr-controller
+    environment:
+      - SERVER_PORT=10000
+    ports:
+      - "10000:10000"
+    networks:
+      - default
+      - rocketmq
+    volumes:
+      - sr-image-data:/app/data/image
+      - sr-model-data:/app/data/model
+
+  sr-inference:
+    image: sr-inference
+    build:
+      context: ./sr-inference
+    environment:
+      - SERVER_PORT=11000
+    networks:
+      - default
+      - rocketmq
+    volumes:
+      - sr-image-data:/app/data/image
+      - sr-model-data:/app/data/model
+
   sr-redis:
     image: redis
     container_name: sr-redis
@@ -75,6 +103,8 @@ networks:
     driver: bridge
 
 volumes:
+  sr-image-data:
+  sr-model-data:
   sr-redis-data:
   sr-nacos-data:
   sr-rocketmq-data:

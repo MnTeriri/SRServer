@@ -17,6 +17,12 @@
     </properties>
 
     <dependencies>
+        <!-- 公共依赖 -->
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>sr-common</artifactId>
+        </dependency>
+
         <!-- Spring Cloud alibaba Nacos Dsiscovery -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>

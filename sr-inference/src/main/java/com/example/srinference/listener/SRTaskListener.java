@@ -56,8 +56,8 @@ public class SRTaskListener implements RocketMQListener<SRTask> {
             String[] split = task.getInputFile().split("\\.");
             task.setOutputFile(split[0] + "_" + task.getModelName() + "x" + task.getScale() + "." + split[1]);
 
-            String inputPath = properties.getInputDir() + "/" + task.getInputFile();
-            String outputPath = properties.getOutputDir() + "/" + task.getOutputFile();
+            String inputPath = properties.getImageInputDir() + "/" + task.getInputFile();
+            String outputPath = properties.getImageOutputDir() + "/" + task.getOutputFile();
 
             //推理
             model.infer(inputPath, outputPath);
