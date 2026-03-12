@@ -32,5 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 /image
-/model/
-/sr-inference/src/main/resources/models/**
+/model
+/docker/**/model
+/docker/**/*.jar
