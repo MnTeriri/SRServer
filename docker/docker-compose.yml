@@ -52,6 +52,13 @@ services:
     volumes:
       - sr-nacos-data:/home/nacos
 
+  sr-sentinel:
+    container_name: sr-sentinel
+    build:
+      context: ./sentinel
+    ports:
+      - "8088:8080"
+
   sr-rocketmq-nameserver:
     image: apache/rocketmq:5.3.2
     container_name: sr-rocketmq-nameserver

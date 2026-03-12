@@ -8,6 +8,7 @@ import com.example.srcommon.model.SRTask;
 import com.example.srcommon.response.ResponseCode;
 import com.example.srcontroller.dao.ISRTaskDao;
 import com.example.srcontroller.service.ISRTaskService;
+import com.example.srcontroller.utils.RocketMQUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
@@ -30,30 +31,44 @@ public class SRTaskServiceImpl implements ISRTaskService {
 
     private final ISRTaskDao srTaskDao;
 
-    private final RedisTemplate<String, Object> redisTemplate;
-
     private final SRProperties properties;
+
+    private final RedisTemplate<String, Object> redisTemplate;
 
     private final RocketMQTemplate rocketMQTemplate;
 
+    private final RocketMQUtils rocketMQUtils;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public String submit(MultipartFile uploadFile, String modelName, Integer scale) throws IOException {
+    public String submit(MultipartFile uploadFile, String modelName, Integer scale) {
         //1.判定模型是否正确
         List<SRProperties.ModelConfig> modelConfigs = properties.getModels().get(modelName);
         if (modelConfigs == null ||
                 modelConfigs.stream().noneMatch(modelConfig -> Objects.equals(modelConfig.getScale(), scale))) {
             throw new SystemException(ResponseCode.NO_SUCH_MODEL_ERROR);
         }
-        //2.判定图片大小是否超出要求（以后加上照片是否已经传过的判定）
 
-        //3.进行处理
+        //2.判定RocketMQ队列是否达到上限
+        if (rocketMQUtils.isQueueOverloaded()) {
+            throw new SystemException(ResponseCode.MQ_BUSY_ERROR);
+        }
+
+        //3.判定图片大小是否超出要求（以后加上照片是否已经传过的判定）
+
+
+        //4.进行处理
         String oldName = uploadFile.getOriginalFilename();//原文件名
         String fileName = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + "_" +
                 RandomUtil.randomNumbers(6) + oldName.substring(oldName.lastIndexOf("."));//生成新文件名
         log.debug("使用模型：{}，放大倍率：{}", modelName, scale);
         log.debug("文件原名称：{}，文件现名称：{}", oldName, fileName);
-        uploadFile.transferTo(Path.of(properties.getImageInputDir() + "/" + fileName).toFile());//保存文件
+        try {
+            uploadFile.transferTo(Path.of(properties.getImageInputDir() + "/" + fileName).toFile());//保存文件
+        } catch (IOException e) {
+            log.error(e.getMessage());
+            throw new SystemException(ResponseCode.ERROR);
+        }
 
         String taskId = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + RandomUtil.randomNumbers(6);
         SRTask task = new SRTask()

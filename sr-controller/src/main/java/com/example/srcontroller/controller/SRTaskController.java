@@ -1,6 +1,8 @@
 package com.example.srcontroller.controller;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.example.srcommon.response.ResponseResult;
+import com.example.srcontroller.handler.SentinelBlockHandler;
 import com.example.srcontroller.service.ISRTaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -32,11 +33,12 @@ public class SRTaskController {
             @Parameter(name = "scale", description = "放大倍率", required = true, in = ParameterIn.QUERY),
     })
     @PostMapping("/submit/{modelName}/{scale}")
+    @SentinelResource(value = "submitTask", blockHandler = "submitBlockHandler", blockHandlerClass = SentinelBlockHandler.class)
     public ResponseEntity<ResponseResult<String>> submit(
             @RequestParam("file") MultipartFile uploadFile,
             @PathVariable String modelName,
             @PathVariable Integer scale
-    ) throws IOException {
+    ) {
         String taskId = srTaskService.submit(uploadFile, modelName, scale);
         return ResponseEntity.ok(ResponseResult.ok(taskId));
     }

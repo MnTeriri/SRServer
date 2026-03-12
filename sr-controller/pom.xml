@@ -42,6 +42,18 @@
             <version>2.3.5</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-tools</artifactId>
+            <version>5.3.1</version>
+        </dependency>
+
+        <!-- Sentinel 依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+        </dependency>
+
         <!-- Spring Boot Cache -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

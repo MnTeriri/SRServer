@@ -29,7 +29,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MessagingException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseResult<String> handlerMessagingException(MessagingException exception) {
-        log.error("发生自定义MessagingException异常：{}", exception.toString());
+        log.error("发生MessagingException异常：{}", exception.toString());
         return ResponseResult.error();
     }
 }

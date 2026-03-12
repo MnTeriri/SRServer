@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface ISRTaskService {
-    public String submit(MultipartFile uploadFile, String modelName, Integer scale) throws IOException;
+    public String submit(MultipartFile uploadFile, String modelName, Integer scale);
 
     public List<Map<String, Object>> getModelList();
 

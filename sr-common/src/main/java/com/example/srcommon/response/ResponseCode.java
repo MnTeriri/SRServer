@@ -12,6 +12,8 @@ public enum ResponseCode {
     NO_SUCH_MODEL_ERROR(100002, "没有该超分模型或对应放大倍率"),
     IMAGE_TOO_BIG_ERROR(100003, "图片分辨率过大"),
     INFERENCE_ERROR(100004, "推理失败"),
+    TASK_BUSY_ERROR(100005, "服务繁忙"),
+    MQ_BUSY_ERROR(100006, "队列达到上限"),
     AUTHORIZED_ERROR(401, "没有权限，需要登录"),
     FORBIDDEN_ERROR(403, "权限不够，被拒绝"),
     INTERNAL_SERVER_ERROR(500, "服务器内部错误");
