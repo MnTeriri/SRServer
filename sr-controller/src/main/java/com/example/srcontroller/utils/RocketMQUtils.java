@@ -25,7 +25,7 @@ public class RocketMQUtils {
             log.debug("当前RocketMQ队列任务数量：{}", backlog);
             return backlog >= maxQueueCount;
         } catch (Exception e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
             return true;
         }
     }

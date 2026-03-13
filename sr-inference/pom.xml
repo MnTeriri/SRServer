@@ -42,13 +42,14 @@
             <version>2.3.5</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/ai.djl/api -->
+        <!-- DJL API -->
         <dependency>
             <groupId>ai.djl</groupId>
             <artifactId>api</artifactId>
             <version>0.36.0</version>
         </dependency>
 
+        <!-- DJL PyTorch -->
         <dependency>
             <groupId>ai.djl.pytorch</groupId>
             <artifactId>pytorch-engine</artifactId>
@@ -56,14 +57,23 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/ai.djl.pytorch/pytorch-native-cu124 -->
-        <dependency>
-            <groupId>ai.djl.pytorch</groupId>
-            <artifactId>pytorch-native-cpu</artifactId>
-            <classifier>win-x86_64</classifier>
-            <scope>runtime</scope>
-            <version>2.7.1</version>
-        </dependency>
+        <!-- DJL CPU 版本 -->
+<!--        <dependency>-->
+<!--            <groupId>ai.djl.pytorch</groupId>-->
+<!--            <artifactId>pytorch-native-cpu</artifactId>-->
+<!--            <classifier>win-x86_64</classifier>-->
+<!--            <scope>runtime</scope>-->
+<!--            <version>2.7.1</version>-->
+<!--        </dependency>-->
+
+        <!-- DJL GPU 版本 -->
+<!--        <dependency>-->
+<!--            <groupId>ai.djl.pytorch</groupId>-->
+<!--            <artifactId>pytorch-native-cu128</artifactId>-->
+<!--            <classifier>win-x86_64</classifier>-->
+<!--            <version>2.7.1</version>-->
+<!--            <scope>runtime</scope>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>ai.djl.pytorch</groupId>

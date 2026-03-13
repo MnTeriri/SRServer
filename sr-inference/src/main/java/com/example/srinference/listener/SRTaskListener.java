@@ -62,7 +62,7 @@ public class SRTaskListener implements RocketMQListener<SRTask> {
             //推理
             model.infer(inputPath, outputPath);
         } catch (Exception e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
 
             task.setState(SRTask.SRTaskState.FAIL)
                     .setOutputFile(null)
@@ -74,6 +74,7 @@ public class SRTaskListener implements RocketMQListener<SRTask> {
             //放入Redis并发送消息，缓存5分钟过期
             redisTemplate.opsForValue().set(task.getTaskId(), task, Duration.ofMinutes(5));
             redisTemplate.convertAndSend("sr-task-channel", task);
+            return;
         }
 
         //3.更新任务状态为FINISH

@@ -117,11 +117,14 @@ sr:
     SwinIR:                                     # 超分模型名称
       - scale: 2                                # 放大倍率
         path: /path/to/model                    # 该倍率模型权重路径
+        device: gpu                             # 使用设备
       - scale: 3
         path: /path/to/model
+        device: cpu
       - scale: 4
         path: /path/to/model
-
+        device: cpu
+        
     SwinIR_Light:
       ...
     ...

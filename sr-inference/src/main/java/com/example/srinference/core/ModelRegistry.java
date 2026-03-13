@@ -1,5 +1,6 @@
 package com.example.srinference.core;
 
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -20,4 +21,16 @@ public class ModelRegistry {
         return models.get(new ModelKey(name, scale));
     }
 
+    @PreDestroy
+    public void shutdown() {
+        log.debug("开始释放模型");
+        models.values().forEach(model -> {
+            try {
+                model.close();
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+            }
+        });
+        log.debug("释放模型完毕");
+    }
 }

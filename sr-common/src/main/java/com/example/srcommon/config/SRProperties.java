@@ -22,5 +22,6 @@ public class SRProperties {
     public static class ModelConfig {
         private Integer scale;
         private String path;
+        private String device;
     }
 }
