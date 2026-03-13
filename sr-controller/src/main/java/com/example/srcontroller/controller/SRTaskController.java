@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -32,7 +34,7 @@ public class SRTaskController {
             @Parameter(name = "modelName", description = "模型名称", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "scale", description = "放大倍率", required = true, in = ParameterIn.QUERY),
     })
-    @PostMapping("/submit/{modelName}/{scale}")
+    @PostMapping("/task/submit/{modelName}/{scale}")
     @SentinelResource(value = "submitTask", blockHandler = "submitBlockHandler", blockHandlerClass = SentinelBlockHandler.class)
     public ResponseEntity<ResponseResult<String>> submit(
             @RequestParam("file") MultipartFile uploadFile,
@@ -47,5 +49,16 @@ public class SRTaskController {
     @GetMapping("/models")
     public ResponseEntity<ResponseResult<List<Map<String, Object>>>> getModelList() {
         return ResponseEntity.ok(ResponseResult.ok(srTaskService.getModelList()));
+    }
+
+    @Operation(summary = "下载图片")
+    @GetMapping("/task/download/{taskId}")
+    public ResponseEntity<Resource> download(@PathVariable String taskId){
+        Resource resource = srTaskService.downloadTaskImage(taskId);
+        return ResponseEntity.ok()
+                .header("Content-Disposition",
+                        "attachment; filename=\"" + resource.getFilename() + "\"")
+                .contentType(MediaType.IMAGE_PNG)
+                .body(resource);
     }
 }

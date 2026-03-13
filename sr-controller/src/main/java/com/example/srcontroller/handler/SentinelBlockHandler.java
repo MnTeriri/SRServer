@@ -19,7 +19,7 @@ public class SentinelBlockHandler {
         log.error("接口 {} 限流：{}", ex.getRule().getResource(), ex.toRuntimeException().toString());
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ResponseResult.error(ResponseCode.TASK_BUSY_ERROR));
+                .body(ResponseResult.error(ResponseCode.INFERENCE_BUSY_ERROR));
     }
 
 }

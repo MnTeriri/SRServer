@@ -12,6 +12,8 @@ import com.example.srcontroller.utils.RocketMQUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,7 +53,7 @@ public class SRTaskServiceImpl implements ISRTaskService {
 
         //2.判定RocketMQ队列是否达到上限
         if (rocketMQUtils.isQueueOverloaded()) {
-            throw new SystemException(ResponseCode.MQ_BUSY_ERROR);
+            throw new SystemException(ResponseCode.MQ_LIMIT_ERROR);
         }
 
         //3.判定图片大小是否超出要求（以后加上照片是否已经传过的判定）
@@ -111,6 +113,7 @@ public class SRTaskServiceImpl implements ISRTaskService {
         //先找缓存
         SRTask task = (SRTask) redisTemplate.opsForValue().get(taskId);
         if (task != null) {
+            log.debug("Redis缓存命中：{}", task);
             return task;
         }
         //缓存没有查数据库
@@ -121,5 +124,23 @@ public class SRTaskServiceImpl implements ISRTaskService {
         //更新缓存
         redisTemplate.opsForValue().set(task.getTaskId(), task, Duration.ofMinutes(5));
         return task;
+    }
+
+    @Override
+    public Resource downloadTaskImage(String taskId) {
+        SRTask srTask = searchSRTaskByTaskId(taskId);
+        //任务未完成
+        if (srTask.getState() == SRTask.SRTaskState.CREATE ||
+                srTask.getState() == SRTask.SRTaskState.RUNNING) {
+            throw new SystemException(ResponseCode.TASK_NOT_FINISH_ERROR);
+        }
+
+        //任务失败
+        if (srTask.getState() == SRTask.SRTaskState.FAIL) {
+            throw new SystemException(ResponseCode.TASK_FAIL_ERROR);
+        }
+
+        String path = properties.getImageOutputDir() + "/" + srTask.getOutputFile();
+        return new FileSystemResource(path);
     }
 }
