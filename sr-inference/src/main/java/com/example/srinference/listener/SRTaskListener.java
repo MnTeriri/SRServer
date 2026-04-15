@@ -1,7 +1,9 @@
 package com.example.srinference.listener;
 
 import com.example.srcommon.config.SRProperties;
+import com.example.srcommon.model.ImageMeta;
 import com.example.srcommon.model.SRTask;
+import com.example.srcommon.utils.ImageUtils;
 import com.example.srinference.core.ModelRegistry;
 import com.example.srinference.core.SRModel;
 import com.example.srinference.dao.ISRTaskDao;
@@ -12,6 +14,8 @@ import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.awt.*;
+import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
@@ -61,6 +65,11 @@ public class SRTaskListener implements RocketMQListener<SRTask> {
 
             //推理
             model.infer(inputPath, outputPath);
+
+            //获取输出照片大小
+            ImageMeta meta = ImageUtils.getImageMeta(outputPath);
+            task.setOutputMeta(meta);
+
         } catch (Exception e) {
             log.error(e.getMessage(), e);
 

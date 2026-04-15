@@ -46,6 +46,8 @@ public class SSEController {
             emitter.complete();
             return emitter;
         }
-        return sseManager.register(taskId);
+        SseEmitter emitter = sseManager.register(taskId);
+        sseManager.send(task.getTaskId(), task);
+        return emitter;
     }
 }

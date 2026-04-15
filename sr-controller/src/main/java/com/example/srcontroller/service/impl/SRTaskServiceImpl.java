@@ -2,10 +2,14 @@ package com.example.srcontroller.service.impl;
 
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.srcommon.config.SRProperties;
 import com.example.srcommon.exception.SystemException;
+import com.example.srcommon.model.ImageMeta;
+import com.example.srcommon.model.SRModelInfo;
 import com.example.srcommon.model.SRTask;
 import com.example.srcommon.response.ResponseCode;
+import com.example.srcommon.utils.ImageUtils;
 import com.example.srcontroller.dao.ISRTaskDao;
 import com.example.srcontroller.service.ISRTaskService;
 import com.example.srcontroller.utils.RocketMQUtils;
@@ -57,18 +61,32 @@ public class SRTaskServiceImpl implements ISRTaskService {
         }
 
         //3.判定图片大小是否超出要求（以后加上照片是否已经传过的判定）
-
+        ImageMeta meta = null;
+        try {
+            meta = ImageUtils.getImageMeta(uploadFile.getInputStream(), uploadFile.getSize());
+            log.info("图片信息: {}x{}, {}", meta.getWidth(), meta.getHeight(), meta.formatSize());
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
+            throw new SystemException(ResponseCode.ERROR);
+        }
 
         //4.进行处理
         String oldName = uploadFile.getOriginalFilename();//原文件名
-        String fileName = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + "_" +
-                RandomUtil.randomNumbers(6) + oldName.substring(oldName.lastIndexOf("."));//生成新文件名
+        String suffix = oldName.substring(oldName.lastIndexOf(".")).toLowerCase();//后缀
+
+        //生成新文件名
+        String fileName = LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+                + "_"
+                + RandomUtil.randomNumbers(6)
+                + suffix;
+
         log.debug("使用模型：{}，放大倍率：{}", modelName, scale);
         log.debug("文件原名称：{}，文件现名称：{}", oldName, fileName);
         try {
-            uploadFile.transferTo(Path.of(properties.getImageInputDir() + "/" + fileName).toFile());//保存文件
+            uploadFile.transferTo(Path.of(properties.getImageInputDir(), fileName).toFile());//保存文件
         } catch (IOException e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
             throw new SystemException(ResponseCode.ERROR);
         }
 
@@ -78,6 +96,7 @@ public class SRTaskServiceImpl implements ISRTaskService {
                 .setModelName(modelName)
                 .setScale(scale)
                 .setInputFile(fileName)
+                .setInputMeta(meta)
                 .setState(SRTask.SRTaskState.CREATE)
                 .setCreateTime(LocalDateTime.now());
 
@@ -93,16 +112,13 @@ public class SRTaskServiceImpl implements ISRTaskService {
     }
 
     @Override
-    public List<Map<String, Object>> getModelList() {
+    public List<SRModelInfo> getModelList() {
         Map<String, List<SRProperties.ModelConfig>> models = properties.getModels();
-        List<Map<String, Object>> list = new ArrayList<>();
+        List<SRModelInfo> list = new ArrayList<>();
 
         models.forEach((modelName, modelConfigs) -> {
-            Map<String, Object> map = new HashMap<>();
             List<Integer> scales = modelConfigs.stream().map(SRProperties.ModelConfig::getScale).toList();
-            map.put("modelName", modelName);
-            map.put("scale", scales);
-            list.add(map);
+            list.add(new SRModelInfo(modelName, scales));
         });
         return list;
     }
@@ -124,6 +140,23 @@ public class SRTaskServiceImpl implements ISRTaskService {
         //更新缓存
         redisTemplate.opsForValue().set(task.getTaskId(), task, Duration.ofMinutes(5));
         return task;
+    }
+
+    @Override
+    public List<SRTask> searchSRTaskList(Integer currentPage, Integer pageSize) {
+        Page<SRTask> page = new Page<>(currentPage, pageSize);
+        QueryWrapper<SRTask> queryWrapper = new QueryWrapper<SRTask>()
+                .orderByDesc("id");
+        return srTaskDao.selectList(page, queryWrapper);
+//        return srTaskDao.searchSRTaskList((currentPage - 1) * pageSize, pageSize);
+    }
+
+    @Override
+    public void deleteSRTaskByTaskId(String taskId) {
+        int row = srTaskDao.delete(new QueryWrapper<SRTask>().eq("task_id", taskId));
+        if (row != 1) {
+            throw new SystemException(ResponseCode.NO_SUCH_TASK_ERROR);
+        }
     }
 
     @Override

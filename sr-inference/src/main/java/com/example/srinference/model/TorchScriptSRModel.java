@@ -1,18 +1,15 @@
 package com.example.srinference.model;
 
 import ai.djl.Device;
-import ai.djl.MalformedModelException;
 import ai.djl.inference.Predictor;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
 import ai.djl.repository.zoo.Criteria;
-import ai.djl.repository.zoo.ModelNotFoundException;
 import ai.djl.repository.zoo.ZooModel;
 import ai.djl.translate.NoopTranslator;
-import com.example.srcommon.config.SRProperties;
+import com.example.srcommon.utils.ImageUtils;
 import com.example.srinference.core.SRModel;
-import com.example.srinference.utils.ImageUtils;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Objects;
 

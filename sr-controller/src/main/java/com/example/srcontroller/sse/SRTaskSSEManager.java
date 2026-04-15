@@ -17,7 +17,7 @@ public class SRTaskSSEManager {
     private final Map<String, SseEmitter> emitterMap = new ConcurrentHashMap<>();
 
     public SseEmitter register(String taskId) {
-        SseEmitter emitter = new SseEmitter(0L); // 永不超时
+        SseEmitter emitter = new SseEmitter(3 * 60 * 1000L); // 3分钟
         emitterMap.put(taskId, emitter);
         log.debug("SSE任务：{} Create", taskId);
 

@@ -17,7 +17,12 @@
     </properties>
 
     <dependencies>
-
+        <!-- DJL API -->
+        <dependency>
+            <groupId>ai.djl</groupId>
+            <artifactId>api</artifactId>
+            <version>0.36.0</version>
+        </dependency>
     </dependencies>
 
     <build>

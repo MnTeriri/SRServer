@@ -1,6 +1,8 @@
 package com.example.srcontroller.controller;
 
 import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import com.example.srcommon.model.SRModelInfo;
+import com.example.srcommon.model.SRTask;
 import com.example.srcommon.response.ResponseResult;
 import com.example.srcontroller.handler.SentinelBlockHandler;
 import com.example.srcontroller.service.ISRTaskService;
@@ -47,8 +49,31 @@ public class SRTaskController {
 
     @Operation(summary = "获取可用模型")
     @GetMapping("/models")
-    public ResponseEntity<ResponseResult<List<Map<String, Object>>>> getModelList() {
+    public ResponseEntity<ResponseResult<List<SRModelInfo>>> getModelList() {
         return ResponseEntity.ok(ResponseResult.ok(srTaskService.getModelList()));
+    }
+
+    @Operation(summary = "获取超分任务（分页）")
+    @Parameters({
+            @Parameter(name = "currentPage", description = "当前页面", required = true, in = ParameterIn.QUERY),
+            @Parameter(name = "pageSize", description = "页面大小", required = true, in = ParameterIn.QUERY),
+    })
+    @PostMapping("/task/searchSRTaskList")
+    public ResponseEntity<ResponseResult<List<SRTask>>> searchSRTaskList(
+            @RequestParam(defaultValue = "1") Integer currentPage,
+            @RequestParam(defaultValue = "10") Integer pageSize
+    ) {
+        return ResponseEntity.ok(ResponseResult.ok(srTaskService.searchSRTaskList(currentPage, pageSize)));
+    }
+
+    @Operation(summary = "删除超分任务")
+    @Parameters({
+            @Parameter(name = "taskId", description = "任务ID", required = true, in = ParameterIn.QUERY),
+    })
+    @PostMapping("/task/deleteSRTask")
+    public ResponseEntity<ResponseResult<String>> deleteSRTask(String taskId) {
+        srTaskService.deleteSRTaskByTaskId(taskId);
+        return ResponseEntity.ok(ResponseResult.ok());
     }
 
     @Operation(summary = "下载图片")
