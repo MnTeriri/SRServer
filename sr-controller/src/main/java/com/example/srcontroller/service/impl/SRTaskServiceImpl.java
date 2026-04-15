@@ -65,6 +65,9 @@ public class SRTaskServiceImpl implements ISRTaskService {
         try {
             meta = ImageUtils.getImageMeta(uploadFile.getInputStream(), uploadFile.getSize());
             log.info("图片信息: {}x{}, {}", meta.getWidth(), meta.getHeight(), meta.formatSize());
+            if (meta.getHeight() > 3000 || meta.getWidth() > 3000 || meta.toMB() > 5.0) {
+                throw new SystemException(ResponseCode.IMAGE_SIZE_LIMIT_ERROR);
+            }
         } catch (IOException e) {
             log.error(e.getMessage(), e);
             throw new SystemException(ResponseCode.ERROR);

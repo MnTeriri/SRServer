@@ -2,6 +2,7 @@ package com.example.srcommon.model;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.*;
 import lombok.experimental.Accessors;
@@ -43,6 +44,7 @@ public class SRTask {
         return this;
     }
 
+    @JsonIgnore
     public ImageMeta getInputMeta() {
         return new ImageMeta(inputWidth, inputHeight, inputSizeBytes);
     }
@@ -55,6 +57,7 @@ public class SRTask {
         return this;
     }
 
+    @JsonIgnore
     public ImageMeta getOutputMeta() {
         return new ImageMeta(outputWidth, outputHeight, outputSizeBytes);
     }
