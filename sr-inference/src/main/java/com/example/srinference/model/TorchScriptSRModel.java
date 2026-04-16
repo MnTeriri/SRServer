@@ -8,8 +8,8 @@ import ai.djl.ndarray.NDManager;
 import ai.djl.repository.zoo.Criteria;
 import ai.djl.repository.zoo.ZooModel;
 import ai.djl.translate.NoopTranslator;
-import com.example.srcommon.utils.ImageUtils;
 import com.example.srinference.core.SRModel;
+import com.example.srinference.utils.NDArrayUtils;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -63,7 +63,7 @@ public class TorchScriptSRModel implements SRModel {
             log.debug("正在处理图片 {}", inputPath);
 
             //1.图片转换成NDArray
-            NDArray input = ImageUtils.toNDArray(inputPath, manager);
+            NDArray input = NDArrayUtils.toNDArray(inputPath, manager);
             log.info("Input shape: {}, Device: {}", input.getShape(), input.getDevice());
 
             //2.模型推理
@@ -72,7 +72,7 @@ public class TorchScriptSRModel implements SRModel {
             log.info("Output shape: {}, Device: {}", output.getShape(), output.getDevice());
 
             //3.NDArray转换成图片
-            BufferedImage image = ImageUtils.toImage(output);
+            BufferedImage image = NDArrayUtils.toImage(output);
             ImageIO.write(image, outputPath.split("\\.")[1], new File(outputPath));
             log.debug("图片已保存在 {}", outputPath);
         }
