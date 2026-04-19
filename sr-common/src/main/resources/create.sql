@@ -5,6 +5,7 @@ CREATE TABLE sr_task
     model_name        VARCHAR(20) NOT NULL,
     scale             INT         NOT NULL,
     input_file        VARCHAR(50) NOT NULL,
+    input_file_md5    CHAR(32)    NOT NULL,
     input_width       INT         NOT NULL,
     input_height      INT         NOT NULL,
     input_size_bytes  LONG        NOT NULL,
@@ -17,3 +18,5 @@ CREATE TABLE sr_task
     finish_time       DATETIME,
     CONSTRAINT task_id_unique_index UNIQUE (task_id)
 );
+
+CREATE INDEX idx_input_md5_model_scale ON sr_task (input_file_md5, model_name, scale);

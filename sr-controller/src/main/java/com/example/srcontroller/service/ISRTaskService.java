@@ -6,7 +6,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Map;
 
 public interface ISRTaskService {
     public String submit(MultipartFile uploadFile, String modelName, Integer scale);
@@ -14,6 +13,10 @@ public interface ISRTaskService {
     public List<SRModelInfo> getModelList();
 
     public SRTask searchSRTaskByTaskId(String taskId);
+
+    public String searchInputFileByMd5(String md5);
+
+    public SRTask searchSRTaskByNameAndScale(String modelName, Integer scale);
 
     public List<SRTask> searchSRTaskList(Integer currentPage, Integer pageSize);
 

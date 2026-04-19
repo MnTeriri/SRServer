@@ -26,6 +26,9 @@ public class SRTask {
     private Integer inputWidth;
     private Integer inputHeight;
     private Long inputSizeBytes;
+    @TableField(value = "input_file_md5")
+    @JsonIgnore
+    private String inputFileMD5;//输入文件的MD5
 
     private String outputFile;//输出文件
     private Integer outputWidth;

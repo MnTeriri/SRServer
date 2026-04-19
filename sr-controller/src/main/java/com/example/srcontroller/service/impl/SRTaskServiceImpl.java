@@ -1,6 +1,7 @@
 package com.example.srcontroller.service.impl;
 
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.crypto.SecureUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.srcommon.config.SRProperties;
@@ -24,11 +25,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -45,63 +50,16 @@ public class SRTaskServiceImpl implements ISRTaskService {
 
     private final RocketMQUtils rocketMQUtils;
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public String submit(MultipartFile uploadFile, String modelName, Integer scale) {
-        //1.判定模型是否正确
-        List<SRProperties.ModelConfig> modelConfigs = properties.getModels().get(modelName);
-        if (modelConfigs == null ||
-                modelConfigs.stream().noneMatch(modelConfig -> Objects.equals(modelConfig.getScale(), scale))) {
-            throw new SystemException(ResponseCode.NO_SUCH_MODEL_ERROR);
-        }
-
-        //2.判定RocketMQ队列是否达到上限
-        if (rocketMQUtils.isQueueOverloaded()) {
-            throw new SystemException(ResponseCode.MQ_LIMIT_ERROR);
-        }
-
-        //3.判定图片大小是否超出要求（以后加上照片是否已经传过的判定）
-        ImageMeta meta = null;
-        try {
-            meta = ImageUtils.getImageMeta(uploadFile.getInputStream(), uploadFile.getSize());
-            log.info("图片信息: {}x{}, {}", meta.getWidth(), meta.getHeight(), meta.formatSize());
-            if (meta.getHeight() > 3000 || meta.getWidth() > 3000 || meta.toMB() > 5.0) {
-                throw new SystemException(ResponseCode.IMAGE_SIZE_LIMIT_ERROR);
-            }
-        } catch (IOException e) {
-            log.error(e.getMessage(), e);
-            throw new SystemException(ResponseCode.ERROR);
-        }
-
-        //4.进行处理
-        String oldName = uploadFile.getOriginalFilename();//原文件名
-        String suffix = oldName.substring(oldName.lastIndexOf(".")).toLowerCase();//后缀
-
-        //生成新文件名
-        String fileName = LocalDateTime.now()
+    private String createTask(SRTask task) {
+        String taskId = LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
-                + "_"
-                + RandomUtil.randomNumbers(6)
-                + suffix;
+                + RandomUtil.randomNumbers(6);
 
-        log.debug("使用模型：{}，放大倍率：{}", modelName, scale);
-        log.debug("文件原名称：{}，文件现名称：{}", oldName, fileName);
-        try {
-            uploadFile.transferTo(Path.of(properties.getImageInputDir(), fileName).toFile());//保存文件
-        } catch (IOException e) {
-            log.error(e.getMessage(), e);
-            throw new SystemException(ResponseCode.ERROR);
-        }
-
-        String taskId = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + RandomUtil.randomNumbers(6);
-        SRTask task = new SRTask()
-                .setTaskId(taskId)
-                .setModelName(modelName)
-                .setScale(scale)
-                .setInputFile(fileName)
-                .setInputMeta(meta)
+        task.setTaskId(taskId)
                 .setState(SRTask.SRTaskState.CREATE)
                 .setCreateTime(LocalDateTime.now());
+
+        log.debug("创建任务：{}", task);
 
         //任务添加到数据库
         srTaskDao.insert(task);
@@ -112,6 +70,68 @@ public class SRTaskServiceImpl implements ISRTaskService {
         rocketMQTemplate.convertAndSend("sr-task-topic", task);
 
         return taskId;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String submit(MultipartFile uploadFile, String modelName, Integer scale) {
+        //1.判定模型是否正确
+        List<SRProperties.ModelConfig> modelConfigs = properties.getModels().get(modelName);
+        if (modelConfigs == null ||
+                modelConfigs.stream().noneMatch(modelConfig -> Objects.equals(modelConfig.getScale(), scale))) {
+            throw new SystemException(ResponseCode.NO_SUCH_MODEL_ERROR);
+        }
+
+        try {
+            //2.判定图片大小是否超出要求
+            ImageMeta meta = ImageUtils.getImageMeta(uploadFile.getInputStream(), uploadFile.getSize());
+            log.info("图片信息: {}x{}, {}", meta.getWidth(), meta.getHeight(), meta.formatSize());
+            if (meta.getHeight() > 3000 || meta.getWidth() > 3000 || meta.toMB() > 5.0) {
+                throw new SystemException(ResponseCode.IMAGE_SIZE_LIMIT_ERROR);
+            }
+
+            //3.查是否已有“同图 + 同模型 + 同倍率”的任务，注意同任务如果失败则尝试重建（暂时不实现）
+
+
+            //4.判定RocketMQ队列是否达到上限
+            if (rocketMQUtils.isQueueOverloaded()) {
+                throw new SystemException(ResponseCode.MQ_LIMIT_ERROR);
+            }
+
+            //5.查是否已有相同原图，用于复用 inputFile
+            String md5 = SecureUtil.md5(uploadFile.getInputStream());
+            String inputFile = searchInputFileByMd5(md5);
+            if (inputFile != null) {
+                log.debug("复用已有输入图片, 文件名称：{}, 文件MD5：{}", inputFile, md5);
+            } else {
+                String oldName = uploadFile.getOriginalFilename();//原文件名
+                String suffix = oldName.substring(oldName.lastIndexOf(".")).toLowerCase();//后缀
+
+                //生成新文件名
+                inputFile = LocalDateTime.now()
+                        .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+                        + "_"
+                        + RandomUtil.randomNumbers(6)
+                        + suffix;
+
+                //保存文件
+                uploadFile.transferTo(Path.of(properties.getImageInputDir(), inputFile).toFile());
+                log.debug("保存新输入图片，文件原名称：{}，文件现名称：{}，文件MD5：{}", oldName, inputFile, md5);
+            }
+
+            SRTask task = new SRTask()
+                    .setModelName(modelName)
+                    .setScale(scale)
+                    .setInputFile(inputFile)
+                    .setInputFileMD5(md5)
+                    .setInputMeta(meta);
+
+            //6.创建任务
+            return createTask(task);
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
+            throw new SystemException(ResponseCode.ERROR);
+        }
     }
 
     @Override
@@ -146,6 +166,23 @@ public class SRTaskServiceImpl implements ISRTaskService {
     }
 
     @Override
+    public String searchInputFileByMd5(String md5) {
+        SRTask task = srTaskDao.selectOne(
+                new QueryWrapper<SRTask>()
+                        .select("input_file")
+                        .eq("input_file_md5", md5)
+                        .orderByDesc("id")
+                        .last("LIMIT 1")
+        );
+        return task == null ? null : task.getInputFile();
+    }
+
+    @Override
+    public SRTask searchSRTaskByNameAndScale(String modelName, Integer scale) {
+        return null;
+    }
+
+    @Override
     public List<SRTask> searchSRTaskList(Integer currentPage, Integer pageSize) {
         Page<SRTask> page = new Page<>(currentPage, pageSize);
         QueryWrapper<SRTask> queryWrapper = new QueryWrapper<SRTask>()
@@ -155,10 +192,48 @@ public class SRTaskServiceImpl implements ISRTaskService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteSRTaskByTaskId(String taskId) {
+        //1.查询任务是否存在
+        log.debug("查询是否存在任务：{}", taskId);
+        SRTask task = srTaskDao.selectOne(new QueryWrapper<SRTask>().eq("task_id", taskId));
+        if (task == null) {
+            throw new SystemException(ResponseCode.NO_SUCH_TASK_ERROR);
+        }
+
+        // 2. 只有 FINISH / FAIL 才允许删除
+        if (task.getState() != SRTask.SRTaskState.FINISH && task.getState() != SRTask.SRTaskState.FAIL) {
+            throw new SystemException(ResponseCode.TASK_NOT_FINISH_ERROR);
+        }
+
+        log.debug("任务状态：{}，删除任务 {} 的 Redis 缓存和数据库记录", task.getState(), taskId);
+        // 3. 删除 Redis 缓存和数据库记录
+        redisTemplate.delete(taskId);
         int row = srTaskDao.delete(new QueryWrapper<SRTask>().eq("task_id", taskId));
         if (row != 1) {
             throw new SystemException(ResponseCode.NO_SUCH_TASK_ERROR);
+        }
+
+        try {
+            // 4. 删除输出图片（注意判空，因为当任务失败时是没有输出图片的）
+            if (task.getOutputFile() == null) {
+                log.debug("任务 {} 的输出图片不存在，不执行删除", taskId);
+            } else {
+                log.debug("删除任务 {} 的输出图片", taskId);
+                Files.deleteIfExists(Path.of(properties.getImageOutputDir(), task.getOutputFile()));
+            }
+
+            // 5. 判断输入图片是否还被其他任务使用
+            boolean isUseInputFile = srTaskDao.selectCount(new QueryWrapper<SRTask>().eq("input_file", task.getInputFile())) > 0;
+            if (isUseInputFile) {
+                log.debug("任务 {} 的输入图片还在使用，不执行删除", taskId);
+            } else {
+                log.debug("删除任务 {} 的输入图片", taskId);
+                Files.deleteIfExists(Path.of(properties.getImageInputDir(), task.getInputFile()));
+            }
+        } catch (IOException e) {
+            log.error("删除图片失败, taskId={}", taskId);
+            log.error(e.getMessage(), e);
         }
     }
 
